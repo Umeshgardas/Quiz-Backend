@@ -22,4 +22,4 @@ const quizRoutes = require('./routes/quiz');
 app.use('/api/auth', authRoutes);
 app.use('/api/quiz', quizRoutes);
 
-app.listen(5000, () => console.log("Server started on port 5000"));
+app.listen(process.env.PORT, () => console.log("Server started on port 5000"));
