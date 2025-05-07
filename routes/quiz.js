@@ -24,6 +24,10 @@ router.post('/upload', async (req, res) => {
     }
 });
 
+
+router.get("/welcome", (req, res) => {
+    res.send("Welcome to the Quiz!");
+  });
 // Get quiz by category and subcategory
 router.get('/:category/:subCategory', async (req, res) => {
     try {
