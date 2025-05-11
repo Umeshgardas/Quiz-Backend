@@ -9,10 +9,7 @@ app.use(express.json());
 
 // Connect MongoDB
 mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+  .connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.log(err));
 
@@ -23,8 +20,9 @@ const quizRoutes = require("./routes/quiz");
 app.use("/api/auth", authRoutes);
 app.use("/api/quiz", quizRoutes);
 app.get("/welcome", (req, res) => {
-    res.send("Welcome to the backend!");
-  });
-  
+  res.send("Welcome to the backend!");
+});
 
-app.listen(process.env.PORT, () => console.log("Server started on port 5000"));
+app.listen(process.env.PORT, () =>
+  console.log(`Server started on port ${process.env.PORT}`)
+);

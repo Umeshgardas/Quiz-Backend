@@ -13,6 +13,15 @@ const QuizResultSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  subjectCategory: {
+    type: String,
+    required: true,
+  },
+  topicCategory: {
+    type: String,
+    required: true,
+  },
+
   score: Number,
   total: Number,
   answers: Object,

@@ -9,6 +9,17 @@ router.get("/welcome", (req, res) => {
   res.send("Welcome to the Quiz!");
 });
 
+router.get("/history/:userEmail", async (req, res) => {
+  try {
+    const history = await QuizResult.find({ user: req.params.userEmail }).sort({
+      date: -1,
+    });
+    res.json(history);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error fetching quiz history" });
+  }
+});
 // Check quiz status
 router.get("/status/:email/:category/:subCategory", checkQuizStatus);
 
@@ -46,27 +57,31 @@ router.post("/upload", async (req, res) => {
 });
 
 // Fetch quiz by 4 params
-router.get("/:category/:subCategory/:subjectCategory/:topicCategory", async (req, res) => {
-  try {
-    const { category, subCategory, subjectCategory, topicCategory } = req.params;
+router.get(
+  "/:category/:subCategory/:subjectCategory/:topicCategory",
+  async (req, res) => {
+    try {
+      const { category, subCategory, subjectCategory, topicCategory } =
+        req.params;
 
-    const quizzes = await Quiz.find({
-      category: new RegExp(`^${category}$`, "i"),
-      subCategory: new RegExp(`^${subCategory}$`, "i"),
-      subjectCategory: new RegExp(`^${subjectCategory}$`, "i"),
-      topicCategory: new RegExp(`^${topicCategory}$`, "i"),
-    });
+      const quizzes = await Quiz.find({
+        category: new RegExp(`^${category}$`, "i"),
+        subCategory: new RegExp(`^${subCategory}$`, "i"),
+        subjectCategory: new RegExp(`^${subjectCategory}$`, "i"),
+        topicCategory: new RegExp(`^${topicCategory}$`, "i"),
+      });
 
-    if (!quizzes.length) {
-      return res.status(404).json({ message: "No quiz found." });
+      if (!quizzes.length) {
+        return res.status(404).json({ message: "No quiz found." });
+      }
+
+      res.json(quizzes);
+    } catch (err) {
+      console.error("Fetch Error:", err);
+      res.status(500).json({ error: err.message });
     }
-
-    res.json(quizzes);
-  } catch (err) {
-    console.error("Fetch Error:", err);
-    res.status(500).json({ error: err.message });
   }
-});
+);
 
 // Fetch quiz by 3 params
 router.get("/:category/:subCategory/:subjectCategory", async (req, res) => {
@@ -114,25 +129,50 @@ router.get("/:category/:subCategory", async (req, res) => {
 // Submit quiz result
 router.post("/submit", async (req, res) => {
   try {
-    let { user, category, subCategory, score, total, answers } = req.body;
+    let {
+      user,
+      category,
+      subCategory,
+      subjectCategory,
+      topicCategory,
+      score,
+      total,
+      answers,
+    } = req.body;
 
-    if (!user || !category || !subCategory || score == null || total == null || !answers) {
+    if (
+      !user ||
+      !category ||
+      !subCategory ||
+      !subjectCategory ||
+      !topicCategory ||
+      score == null ||
+      total == null ||
+      !answers
+    ) {
       return res.status(400).json({ message: "Missing required fields." });
     }
 
     category = category.trim();
     subCategory = subCategory.trim();
+    subjectCategory = subjectCategory.trim();
+    topicCategory = topicCategory.trim();
+    const existingResult = await QuizResult.findOne({
+      user,
+      category,
+      subCategory,
+    });
 
-    const existingResult = await QuizResult.findOne({ user, category, subCategory });
-
-    if (existingResult) {
-      return res.status(409).json({ message: "Quiz already submitted." });
-    }
+    // if (existingResult) {
+    //   return res.status(409).json({ message: "Quiz already submitted." });
+    // }
 
     const newResult = new QuizResult({
       user,
       category,
       subCategory,
+      subjectCategory,
+      topicCategory,
       score,
       total,
       answers,
