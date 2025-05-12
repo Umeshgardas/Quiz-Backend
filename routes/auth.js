@@ -1,57 +1,239 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const User = require("../models/User");
+const nodemailer = require("nodemailer");
 
-// Register Route
-router.post('/register', async (req, res) => {
+function generateOTP() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// Register route
+router.post("/register", async (req, res) => {
   const { name, email, password } = req.body;
-  try {
-    // Check if email already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: 'Email already exists' });
-    }
+  if (!name || !email || !password)
+    return res.status(400).json({ message: "All fields are required" });
 
-    // Hash password and save user
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ name, email, password: hashedPassword });
+  try {
+    const existing = await User.findOne({ email });
+    if (existing)
+      return res.status(400).json({ message: "Email already registered" });
+
+    const otp = generateOTP();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+
+
+    const user = new User({
+      name,
+      email,
+      password,
+      otp,
+      otpExpires,
+    });
     await user.save();
 
-    res.status(201).json({ message: 'User registered successfully' });
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    await transporter.sendMail({
+      from: `"App" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Verify Your Email",
+      html: `<p>Your OTP is <b>${otp}</b>. It expires in 10 minutes.</p>`,
+    });
+
+    return res.status(200).json({ message: "OTP sent to email", email });
   } catch (err) {
-    console.error('Register error:', err);
-    res.status(500).json({ message: 'Server error during registration' });
+    console.error("Registration Error:", err);
+    return res
+      .status(500)
+      .json({ message: "Registration error", error: err.message });
   }
 });
 
+// OTP verification
+router.post("/verify-otp", async (req, res) => {
+  const { email, otp } = req.body;
+
+  const user = await User.findOne({ email });
+  if (!user) return res.status(400).json({ message: "User not found" });
+
+  if (user.isVerified)
+    return res.status(400).json({ message: "Already verified" });
+
+  if (user.otp !== otp) {
+    return res.status(400).json({ message: "Invalid OTP" });
+  }
+
+  if (user.otpExpires < Date.now()) {
+    return res.status(400).json({ message: "OTP expired" });
+  }
+
+  user.isVerified = true;
+  user.otp = undefined;
+  user.otpExpires = undefined;
+  await user.save();
+
+  return res.status(200).json({ message: "Email verified successfully!" });
+});
+
+router.post("/resend-otp", async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    user.otp = otp;
+    user.otpExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 min
+    await user.save();
+
+    const transporter = nodemailer.createTransport({
+      service: "Gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: "Your OTP Code (Resent)",
+      text: `Your new OTP is: ${otp}`,
+    });
+
+    res.status(200).json({ message: "OTP resent successfully!" });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to resend OTP" });
+  }
+});
+
+// POST /forgot-password
+router.post("/forgot-password", async (req, res) => {
+  const { email } = req.body;
+  const user = await User.findOne({ email });
+
+  if (!user) return res.status(404).json({ message: "User not found" });
+
+  const resetOTP = generateOTP();
+  user.resetOTP = resetOTP;
+  user.resetOTPExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+  await user.save();
+
+  const transporter = nodemailer.createTransport({
+    service: "Gmail",
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  await transporter.sendMail({
+    from: process.env.EMAIL_USER,
+    to: user.email,
+    subject: "Password Reset OTP",
+    html: `<p>Your password reset OTP is <b>${resetOTP}</b>. It expires in 10 minutes.</p>`,
+  });
+
+  res.status(200).json({ message: "OTP sent to your email" });
+});
+
+// POST /verify-reset-otp
+router.post("/verify-reset-otp", async (req, res) => {
+  const { email, otp } = req.body;
+  const user = await User.findOne({ email });
+
+  if (!user) return res.status(404).json({ message: "User not found" });
+  if (user.resetOTP !== otp)
+    return res.status(400).json({ message: "Invalid OTP" });
+  if (user.resetOTPExpires < Date.now())
+    return res.status(400).json({ message: "OTP expired" });
+
+  res.status(200).json({ message: "OTP verified" });
+});
+
+// POST /reset-password
+router.post("/reset-password", async (req, res) => {
+  const { email, otp, newPassword } = req.body;
+  const user = await User.findOne({ email });
+
+  if (!user) return res.status(404).json({ message: "User not found" });
+  if (user.resetOTP !== otp)
+    return res.status(400).json({ message: "Invalid OTP" });
+  if (user.resetOTPExpires < Date.now())
+    return res.status(400).json({ message: "OTP expired" });
+
+ {/*  const hashedPassword = await bcrypt.hash(newPassword, 10); */}
+  user.password = newPassword;
+  user.resetOTP = undefined;
+  user.resetOTPExpires = undefined;
+  await user.save();
+
+  res.status(200).json({ message: "Password reset successful" });
+});
+
+// // Register Route
+// router.post('/register', async (req, res) => {
+//   const { name, email, password } = req.body;
+//   try {
+//     // Check if email already exists
+//     const existingUser = await User.findOne({ email });
+//     if (existingUser) {
+//       return res.status(400).json({ message: 'Email already exists' });
+//     }
+
+//     // Hash password and save user
+//     const hashedPassword = await bcrypt.hash(password, 10);
+//     const user = new User({ name, email, password: hashedPassword });
+//     await user.save();
+
+//     res.status(201).json({ message: 'User registered successfully' });
+//   } catch (err) {
+//     console.error('Register error:', err);
+//     res.status(500).json({ message: 'Server error during registration' });
+//   }
+// });
+
 // Login Route
-router.post('/login', async (req, res) => {
+router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   try {
     // Find user by email
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: 'User not found' });
+    if (!user) return res.status(400).json({ message: "User not found" });
+
+    if (!user.isVerified) {
+      return res.status(403).json({ message: "Email not verified" });
+    }
 
     // Compare password
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
+    if (!isMatch)
+      return res.status(400).json({ message: "Invalid credentials" });
 
     // Generate JWT
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
 
     res.json({
       token,
       user: {
         id: user._id,
         name: user.name,
-        email: user.email
-      }
+        email: user.email,
+      },
     });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 });
 
