@@ -11,7 +11,7 @@ function generateOTP() {
 
 // Register route
 router.post("/register", async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, role } = req.body;
   if (!name || !email || !password)
     return res.status(400).json({ message: "All fields are required" });
 
@@ -23,13 +23,13 @@ router.post("/register", async (req, res) => {
     const otp = generateOTP();
     const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
 
-
     const user = new User({
       name,
       email,
       password,
       otp,
       otpExpires,
+      role: role === "admin" ? "admin" : "user",
     });
     await user.save();
 
@@ -136,7 +136,7 @@ router.post("/forgot-password", async (req, res) => {
   });
 
   await transporter.sendMail({
-    from: process.env.EMAIL_USER,
+    from: `"Quiz - test" <${process.env.EMAIL_USER}>`,
     to: user.email,
     subject: "Password Reset OTP",
     html: `<p>Your password reset OTP is <b>${resetOTP}</b>. It expires in 10 minutes.</p>`,
@@ -170,7 +170,9 @@ router.post("/reset-password", async (req, res) => {
   if (user.resetOTPExpires < Date.now())
     return res.status(400).json({ message: "OTP expired" });
 
- {/*  const hashedPassword = await bcrypt.hash(newPassword, 10); */}
+  {
+    /*  const hashedPassword = await bcrypt.hash(newPassword, 10); */
+  }
   user.password = newPassword;
   user.resetOTP = undefined;
   user.resetOTPExpires = undefined;
@@ -230,6 +232,7 @@ router.post("/login", async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
       },
     });
   } catch (err) {

@@ -8,7 +8,41 @@ const { checkQuizStatus } = require("../controllers/quizController");
 router.get("/welcome", (req, res) => {
   res.send("Welcome to the Quiz!");
 });
+// GET /api/quiz/all - Get all quizzes
+router.get('/all', async (req, res) => {
+  try {
+    const quizzes = await Quiz.find({});
+    res.status(200).json(quizzes);
+  } catch (err) {
+    console.error('Error fetching all quizzes:', err);
+    res.status(500).json({ message: 'Server error while fetching quizzes.' });
+  }
+  });
 
+
+  // DELETE /api/quiz/:id
+router.delete('/:id', async (req, res) => {
+  try {
+    await Quiz.findByIdAndDelete(req.params.id);
+    res.status(200).json({ message: 'Quiz deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: 'Error deleting quiz' });
+  }
+});
+
+// PUT /api/quiz/:id
+router.put('/:id', async (req, res) => {
+  try {
+    const updatedQuiz = await Quiz.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    });
+    res.status(200).json(updatedQuiz);
+  } catch (err) {
+    res.status(500).json({ message: 'Error updating quiz' });
+  }
+});
+
+module.exports = router;
 router.get("/history/:userEmail", async (req, res) => {
   try {
     const history = await QuizResult.find({ user: req.params.userEmail }).sort({
