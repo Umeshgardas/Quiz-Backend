@@ -58,7 +58,7 @@ router.post("/register", async (req, res) => {
 });
 
 // Update Profile Route
-router.post("/:id/update-profile", authMiddleware, async (req, res) => {
+router.post("/:id/update-profile", async (req, res) => {
   try {
     const userId = req.params.id;
     if (req.userId !== userId)
