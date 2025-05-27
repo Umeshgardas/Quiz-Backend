@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const QuizResultSchema = new mongoose.Schema({
   user: {
@@ -31,4 +31,4 @@ const QuizResultSchema = new mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model('QuizResult', QuizResultSchema);
+module.exports = mongoose.model("QuizResult", QuizResultSchema);
