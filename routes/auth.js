@@ -57,6 +57,42 @@ router.post("/register", async (req, res) => {
   }
 });
 
+// Update Profile Route
+router.post("/:id/update-profile", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    if (req.userId !== userId)
+      return res.status(403).json({ message: "Unauthorized" });
+
+    // Support form-data for profile image
+    // Assuming no image handling for now as you don't mention it explicitly
+    // If you want to handle image, use multer or similar package
+
+    // For simplicity, allow JSON body here for update fields
+    // If form-data with file is sent, you will need multer (not shown here)
+
+    // Get fields from req.body
+    const { firstName, lastName, dob, gender, experience } = req.body;
+
+    // Find user
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Update fields if provided
+    if (firstName !== undefined) user.firstName = firstName;
+    if (lastName !== undefined) user.lastName = lastName;
+    if (dob !== undefined) user.dob = dob;
+    if (gender !== undefined) user.gender = gender;
+    if (experience !== undefined) user.experience = experience;
+
+    await user.save();
+
+    res.status(200).json({ message: "Profile updated successfully", user });
+  } catch (err) {
+    console.error("Update profile error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
 // OTP verification
 router.post("/verify-otp", async (req, res) => {
   const { email, otp } = req.body;
@@ -181,27 +217,6 @@ router.post("/reset-password", async (req, res) => {
   res.status(200).json({ message: "Password reset successful" });
 });
 
-// // Register Route
-// router.post('/register', async (req, res) => {
-//   const { name, email, password } = req.body;
-//   try {
-//     // Check if email already exists
-//     const existingUser = await User.findOne({ email });
-//     if (existingUser) {
-//       return res.status(400).json({ message: 'Email already exists' });
-//     }
-
-//     // Hash password and save user
-//     const hashedPassword = await bcrypt.hash(password, 10);
-//     const user = new User({ name, email, password: hashedPassword });
-//     await user.save();
-
-//     res.status(201).json({ message: 'User registered successfully' });
-//   } catch (err) {
-//     console.error('Register error:', err);
-//     res.status(500).json({ message: 'Server error during registration' });
-//   }
-// });
 
 // Login Route
 router.post("/login", async (req, res) => {
