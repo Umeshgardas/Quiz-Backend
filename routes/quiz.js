@@ -19,7 +19,6 @@ router.get('/all', async (req, res) => {
   }
   });
 
-
   // DELETE /api/quiz/:id
 router.delete('/:id', async (req, res) => {
   try {

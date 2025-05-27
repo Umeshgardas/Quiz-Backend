@@ -1,5 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
+const leaderboardRoutes = require("./routes/leaderboard");
+
 const cors = require("cors");
 require("dotenv").config();
 
@@ -19,6 +21,7 @@ const quizRoutes = require("./routes/quiz");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/quiz", quizRoutes);
+app.use("/api/leaderboard", leaderboardRoutes);
 app.get("/welcome", (req, res) => {
   res.send("Welcome to the backend!");
 });
