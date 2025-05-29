@@ -2,8 +2,8 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema({
-  firstName: { type: String },
-  lastName: { type: String },
+  firstName: String,
+  lastName: String,
   dob: { type: Date },
   gender: { type: String },
   experience: { type: String }, // or Number if you prefer
@@ -14,7 +14,7 @@ const userSchema = new mongoose.Schema({
   otpExpires: Date,
   resetOTP: String,
   resetOTPExpires: Date,
-  role: { type: String, enum: ["user", "admin"], default: "user" }, 
+  role: { type: String, enum: ["user", "admin"], default: "user" },
 });
 
 userSchema.pre("save", async function (next) {

@@ -11,9 +11,16 @@ function generateOTP() {
 
 // Register route
 router.post("/register", async (req, res) => {
-  const { name, email, password, role } = req.body;
-  if (!name || !email || !password)
+  const { firstName, lastName, email, password, role } = req.body;
+  if (
+    !firstName?.trim() ||
+    !lastName?.trim() ||
+    !email?.trim() ||
+    !password?.trim()
+  ) {
+    console.log(firstName);
     return res.status(400).json({ message: "All fields are required" });
+  }
 
   try {
     const existing = await User.findOne({ email });
@@ -24,7 +31,8 @@ router.post("/register", async (req, res) => {
     const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
 
     const user = new User({
-      name,
+      firstName,
+      lastName,
       email,
       password,
       otp,
@@ -216,7 +224,6 @@ router.post("/reset-password", async (req, res) => {
 
   res.status(200).json({ message: "Password reset successful" });
 });
-
 
 // Login Route
 router.post("/login", async (req, res) => {
