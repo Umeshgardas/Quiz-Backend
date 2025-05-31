@@ -4,6 +4,8 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const nodemailer = require("nodemailer");
+const multer = require("multer");
+const upload = multer({ dest: "uploads/" });
 
 function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -65,33 +67,27 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// Update Profile Route
-router.post("/:id/update-profile", async (req, res) => {
+router.post("/:id/update-profile", upload.single("profileImage"), async (req, res) => {
   try {
     const userId = req.params.id;
     if (req.userId !== userId)
       return res.status(403).json({ message: "Unauthorized" });
 
-    // Support form-data for profile image
-    // Assuming no image handling for now as you don't mention it explicitly
-    // If you want to handle image, use multer or similar package
-
-    // For simplicity, allow JSON body here for update fields
-    // If form-data with file is sent, you will need multer (not shown here)
-
-    // Get fields from req.body
     const { firstName, lastName, dob, gender, experience } = req.body;
 
-    // Find user
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Update fields if provided
-    if (firstName !== undefined) user.firstName = firstName;
-    if (lastName !== undefined) user.lastName = lastName;
-    if (dob !== undefined) user.dob = dob;
-    if (gender !== undefined) user.gender = gender;
-    if (experience !== undefined) user.experience = experience;
+    if (firstName) user.firstName = firstName;
+    if (lastName) user.lastName = lastName;
+    if (dob) user.dob = dob;
+    if (gender) user.gender = gender;
+    if (experience) user.experience = experience;
+
+    // Optional: save profile image path if uploaded
+    if (req.file) {
+      user.profileImage = req.file.path; // you can store filename or full path
+    }
 
     await user.save();
 
@@ -101,6 +97,7 @@ router.post("/:id/update-profile", async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
+
 // OTP verification
 router.post("/verify-otp", async (req, res) => {
   const { email, otp } = req.body;
@@ -261,5 +258,7 @@ router.post("/login", async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
+
+
 
 module.exports = router;
