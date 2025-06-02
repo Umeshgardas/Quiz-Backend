@@ -16,6 +16,10 @@ const userSchema = new mongoose.Schema({
   resetOTP: String,
   resetOTPExpires: Date,
   role: { type: String, enum: ["user", "admin"], default: "user" },
+  profileImage: {
+    data: Buffer,
+    contentType: String,
+  },
 });
 
 userSchema.pre("save", async function (next) {

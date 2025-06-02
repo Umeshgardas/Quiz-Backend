@@ -96,55 +96,63 @@ router.post("/register", async (req, res) => {
   }
 });
 
-router.post(
-  "/:id/update-profile",
-  authenticate,
-  upload.single("profileImage"),
-  async (req, res) => {
-    try {
-      const userId = req.params.id;
-      if (req.userId.toString() !== userId.toString())
-        return res.status(403).json({ message: "Unauthorized" });
+router.post("/:id/update-profile", async (req, res) => {
+  const { id } = req.params;
+  const { firstName, lastName, dob, gender, experience, profileImage } = req.body;
 
-      const { firstName, lastName, dob, gender, experience } = req.body;
+  const updateFields = {
+    firstName,
+    lastName,
+    dob,
+    gender,
+    experience,
+  };
 
-      const user = await User.findById(userId);
-      if (!user) return res.status(404).json({ message: "User not found" });
+  // If profileImage exists, convert base64 to Buffer
+  if (profileImage) {
+    const matches = profileImage.match(/^data:(.+);base64,(.+)$/);
+    if (matches) {
+      const contentType = matches[1];
+      const imageBuffer = Buffer.from(matches[2], "base64");
 
-      if (firstName) user.firstName = firstName;
-      if (lastName) user.lastName = lastName;
-      if (dob) user.dob = dob;
-      if (gender) user.gender = gender;
-      if (experience) user.experience = experience;
-
-      if (req.file) {
-        // Save the relative path to the image
-        user.profileImage = `profileImage: "https://quiz-backend-mn2m.onrender.com/uploads/${req.file.filename}`;
-      }
-
-      await user.save();
-
-      res.status(200).json({ message: "Profile updated successfully", user });
-    } catch (err) {
-      console.error("Update profile error:", err);
-      res.status(500).json({ message: "Server error", error: err.message });
+      updateFields.profileImage = {
+        data: imageBuffer,
+        contentType,
+      };
     }
   }
-);
+
+  try {
+    const updatedUser = await User.findByIdAndUpdate(id, updateFields, { new: true });
+    res.status(200).json({ message: "Profile updated", user: updatedUser });
+  } catch (err) {
+    res.status(500).json({ message: "Update failed", error: err.message });
+  }
+});
+
+
+
 router.get("/:id", authenticate, async (req, res) => {
   try {
-    const userId = req.params.id;
-    if (req.userId.toString() !== userId.toString())
-      return res.status(403).json({ message: "Unauthorized" });
+    const user = await User.findById(req.params.id);
 
-    const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    res.status(200).json(user);
+    const userObj = user.toObject();
+
+    if (user.profileImage?.data) {
+      userObj.profileImage = `data:${user.profileImage.contentType};base64,${user.profileImage.data.toString("base64")}`;
+    } else {
+      userObj.profileImage = null;
+    }
+
+    res.status(200).json(userObj);
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
+
+
 
 router.get("/test", (req, res) => {
   res.send("API working!");
