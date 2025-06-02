@@ -36,6 +36,8 @@ const upload = multer({
     cb(new Error("Only image files are allowed!"));
   },
 });
+
+
 function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
@@ -99,12 +101,17 @@ router.post("/register", async (req, res) => {
 // Example Express route for updating user profile
 router.post('/:id/update-profile', async (req, res) => {
   const { userId } = req.params;
-  const { firstName, lastName, dob, gender, experience, profileImage } = req.body;
+  const {
+    firstName,
+    lastName,
+    dob,
+    gender,
+    experience,
+    profileImage, // receive the base64 string here
+  } = req.body;
 
   try {
-    // Validate required fields, etc.
-
-    // Save to DB - pseudo code:
+    // Find and update the user
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       {
@@ -113,19 +120,19 @@ router.post('/:id/update-profile', async (req, res) => {
         dob,
         gender,
         experience,
-        profileImage, // Save base64 string here
+        profileImage, // store base64 string directly (or you can validate/transform here)
       },
-      { new: true }
+      { new: true } // return updated document
     );
 
     if (!updatedUser) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    res.json({ message: "Profile updated successfully", user: updatedUser });
+    res.json({ message: 'Profile updated successfully', user: updatedUser });
   } catch (error) {
-    console.error("Update profile error:", error);
-    res.status(500).json({ message: "Internal server error" });
+    console.error('Update profile error:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
