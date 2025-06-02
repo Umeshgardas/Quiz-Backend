@@ -40,6 +40,25 @@ const upload = multer({
 function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
+// Mock recommended courses data for demonstration
+const recommendedCourses = [
+  { id: "course1", title: "React Basics", description: "Learn React fundamentals" },
+  { id: "course2", title: "Node.js API Development", description: "Build REST APIs with Node" },
+  { id: "course3", title: "MongoDB Essentials", description: "Master NoSQL databases" },
+];
+
+// GET recommended courses for user by id (protected route)
+router.get("/:id/recommended-courses", authenticate, async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    // You can fetch real data from DB based on user's preferences
+    // For now, return the mock array:
+    res.status(200).json({ courses: recommendedCourses });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to get recommended courses" });
+  }
+});
 
 // Register route
 router.post("/:id/update-profile", async (req, res) => {
