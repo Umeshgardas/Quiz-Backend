@@ -5,8 +5,37 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const nodemailer = require("nodemailer");
 const multer = require("multer");
-const upload = multer({ dest: "uploads/" });
+const authenticate = require("../middleware/auth");
+const path = require("path");
 
+// Multer setup to save files with original extension and unique name
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/"); // folder to save images
+  },
+  filename: function (req, file, cb) {
+    // Example: profile-1234567890.png
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    cb(null, file.fieldname + "-" + uniqueSuffix + ext);
+  },
+});
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // max 5MB
+  fileFilter: (req, file, cb) => {
+    const filetypes = /jpeg|jpg|png|gif/;
+    const mimetype = filetypes.test(file.mimetype);
+    const extname = filetypes.test(
+      path.extname(file.originalname).toLowerCase()
+    );
+    if (mimetype && extname) {
+      return cb(null, true);
+    }
+    cb(new Error("Only image files are allowed!"));
+  },
+});
 function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
@@ -67,37 +96,59 @@ router.post("/register", async (req, res) => {
   }
 });
 
-router.post("/:id/update-profile", upload.single("profileImage"), async (req, res) => {
+router.post(
+  "/:id/update-profile",
+  authenticate,
+  upload.single("profileImage"),
+  async (req, res) => {
+    try {
+      const userId = req.params.id;
+      if (req.userId.toString() !== userId.toString())
+        return res.status(403).json({ message: "Unauthorized" });
+
+      const { firstName, lastName, dob, gender, experience } = req.body;
+
+      const user = await User.findById(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      if (firstName) user.firstName = firstName;
+      if (lastName) user.lastName = lastName;
+      if (dob) user.dob = dob;
+      if (gender) user.gender = gender;
+      if (experience) user.experience = experience;
+
+      if (req.file) {
+        // Save the relative path to the image
+        user.profileImage = `/uploads/${req.file.filename}`;
+      }
+
+      await user.save();
+
+      res.status(200).json({ message: "Profile updated successfully", user });
+    } catch (err) {
+      console.error("Update profile error:", err);
+      res.status(500).json({ message: "Server error", error: err.message });
+    }
+  }
+);
+router.get("/:id", authenticate, async (req, res) => {
   try {
     const userId = req.params.id;
-    if (req.userId !== userId)
+    if (req.userId.toString() !== userId.toString())
       return res.status(403).json({ message: "Unauthorized" });
-
-    const { firstName, lastName, dob, gender, experience } = req.body;
 
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    if (firstName) user.firstName = firstName;
-    if (lastName) user.lastName = lastName;
-    if (dob) user.dob = dob;
-    if (gender) user.gender = gender;
-    if (experience) user.experience = experience;
-
-    // Optional: save profile image path if uploaded
-    if (req.file) {
-      user.profileImage = req.file.path; // you can store filename or full path
-    }
-
-    await user.save();
-
-    res.status(200).json({ message: "Profile updated successfully", user });
+    res.status(200).json(user);
   } catch (err) {
-    console.error("Update profile error:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
 
+router.get("/test", (req, res) => {
+  res.send("API working!");
+});
 // OTP verification
 router.post("/verify-otp", async (req, res) => {
   const { email, otp } = req.body;
@@ -214,7 +265,8 @@ router.post("/reset-password", async (req, res) => {
   {
     /*  const hashedPassword = await bcrypt.hash(newPassword, 10); */
   }
-  user.password = newPassword;
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  user.password = hashedPassword;
   user.resetOTP = undefined;
   user.resetOTPExpires = undefined;
   await user.save();
@@ -242,7 +294,7 @@ router.post("/login", async (req, res) => {
 
     // Generate JWT
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
+      expiresIn: "7d",
     });
 
     res.json({
@@ -258,7 +310,5 @@ router.post("/login", async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
-
-
 
 module.exports = router;
