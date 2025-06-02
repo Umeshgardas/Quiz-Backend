@@ -119,7 +119,7 @@ router.post(
 
       if (req.file) {
         // Save the relative path to the image
-        user.profileImage = `/uploads/${req.file.filename}`;
+        user.profileImage = `profileImage: "https://quiz-backend-mn2m.onrender.com/uploads/${req.file.filename}`;
       }
 
       await user.save();
