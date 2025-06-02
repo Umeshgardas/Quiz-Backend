@@ -158,6 +158,30 @@ router.get("/:category/:subCategory", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// Fetch recommended courses by subjectCategory (e.g., NISM, MF)
+router.get("/recommended/courses", async (req, res) => {
+  try {
+    // Define the subjectCategories you want as recommended
+    const recommendedSubjectCategories = ["NISM", "MF"];
+
+    // Find quizzes where subjectCategory is either NISM or MF (case-insensitive)
+    const quizzes = await Quiz.find({
+      subjectCategory: { $in: recommendedSubjectCategories.map(sub => new RegExp(`^${sub}$`, "i")) },
+    });
+
+    if (!quizzes.length) {
+      return res.status(404).json({ message: "No recommended courses found." });
+    }
+
+    // Optionally, if you want to organize quizzes by subjectCategory or topics,
+    // you can do some grouping here before sending
+
+    res.json(quizzes);
+  } catch (err) {
+    console.error("Fetch Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // Submit quiz result
 router.post("/submit", async (req, res) => {
