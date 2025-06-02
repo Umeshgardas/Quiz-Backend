@@ -37,129 +37,36 @@ const upload = multer({
   },
 });
 
-
 function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 // Register route
-router.post("/register", async (req, res) => {
-  const { firstName, lastName, email, password, role } = req.body;
-  if (
-    !firstName?.trim() ||
-    !lastName?.trim() ||
-    !email?.trim() ||
-    !password?.trim()
-  ) {
-    console.log(firstName);
-    return res.status(400).json({ message: "All fields are required" });
-  }
-
+router.post("/:id/update-profile", async (req, res) => {
   try {
-    const existing = await User.findOne({ email });
-    if (existing)
-      return res.status(400).json({ message: "Email already registered" });
+    const userId = req.params.id;
+    const updateData = req.body; // Accept all fields sent by frontend
 
-    const otp = generateOTP();
-    const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
-
-    const user = new User({
-      firstName,
-      lastName,
-      email,
-      password,
-      otp,
-      otpExpires,
-      role: role === "admin" ? "admin" : "user",
+    const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
+      new: true,
     });
-    await user.save();
-
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-
-    await transporter.sendMail({
-      from: `"App" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: "Verify Your Email",
-      html: `<p>Your OTP is <b>${otp}</b>. It expires in 10 minutes.</p>`,
-    });
-
-    return res.status(200).json({ message: "OTP sent to email", email });
-  } catch (err) {
-    console.error("Registration Error:", err);
-    return res
-      .status(500)
-      .json({ message: "Registration error", error: err.message });
-  }
-});
-
-// Example Express route for updating user profile
-router.post('/:id/update-profile', async (req, res) => {
-  const { userId } = req.params;
-  const {
-    firstName,
-    lastName,
-    dob,
-    gender,
-    experience,
-    profileImage, // receive the base64 string here
-  } = req.body;
-
-  try {
-    // Find and update the user
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      {
-        firstName,
-        lastName,
-        dob,
-        gender,
-        experience,
-        profileImage, // store base64 string directly (or you can validate/transform here)
-      },
-      { new: true } // return updated document
-    );
 
     if (!updatedUser) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
-    res.json({ message: 'Profile updated successfully', user: updatedUser });
+    return res.status(200).json({
+      message: "Profile updated successfully",
+      user: updatedUser,
+    });
   } catch (error) {
-    console.error('Update profile error:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error("Update profile failed:", error);
+    return res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
   }
 });
 
-// router.post("/:id/update-profile", async (req, res) => {
-//   const { id } = req.params;
-//   const { firstName, lastName, dob, gender, experience, profileImage } =
-//     req.body;
-
-//   const updateFields = { firstName, lastName, dob, gender, experience };
-
-//   if (profileImage?.startsWith("data:image")) {
-//     updateFields.profileImage = profileImage; // store base64 string directly
-//   }
-
-//   try {
-//     const updatedUser = await User.findByIdAndUpdate(id, updateFields, {
-//       new: true,
-//     });
-//     if (!updatedUser) {
-//       return res.status(404).json({ message: "User not found" });
-//     }
-//     res.status(200).json({ message: "Profile updated", user: updatedUser });
-//   } catch (err) {
-//     console.error("Update profile error:", err);
-//     res.status(500).json({ message: "Update failed", error: err.message });
-//   }
-// });
 
 router.get("/:id", authenticate, async (req, res) => {
   try {
@@ -169,13 +76,8 @@ router.get("/:id", authenticate, async (req, res) => {
 
     const userObj = user.toObject();
 
-    if (user.profileImage?.data) {
-      userObj.profileImage = `data:${
-        user.profileImage.contentType
-      };base64,${user.profileImage.data.toString("base64")}`;
-    } else {
-      userObj.profileImage = null;
-    }
+    // Remove Buffer checks, just return string
+    userObj.profileImage = user.profileImage || null;
 
     res.status(200).json(userObj);
   } catch (err) {
