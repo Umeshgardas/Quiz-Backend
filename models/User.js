@@ -17,9 +17,11 @@ const userSchema = new mongoose.Schema({
   resetOTPExpires: Date,
   role: { type: String, enum: ["user", "admin"], default: "user" },
   profileImage: {
-    data: Buffer,
-    contentType: String,
-  },
+  data: Buffer,
+  contentType: String
+}
+// just use the base64 string directly
+
 });
 
 userSchema.pre("save", async function (next) {

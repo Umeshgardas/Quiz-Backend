@@ -96,41 +96,63 @@ router.post("/register", async (req, res) => {
   }
 });
 
-router.post("/:id/update-profile", async (req, res) => {
-  const { id } = req.params;
+// Example Express route for updating user profile
+router.post('/:id/update-profile', async (req, res) => {
+  const { userId } = req.params;
   const { firstName, lastName, dob, gender, experience, profileImage } = req.body;
 
-  const updateFields = {
-    firstName,
-    lastName,
-    dob,
-    gender,
-    experience,
-  };
-
-  // If profileImage exists, convert base64 to Buffer
-  if (profileImage) {
-    const matches = profileImage.match(/^data:(.+);base64,(.+)$/);
-    if (matches) {
-      const contentType = matches[1];
-      const imageBuffer = Buffer.from(matches[2], "base64");
-
-      updateFields.profileImage = {
-        data: imageBuffer,
-        contentType,
-      };
-    }
-  }
-
   try {
-    const updatedUser = await User.findByIdAndUpdate(id, updateFields, { new: true });
-    res.status(200).json({ message: "Profile updated", user: updatedUser });
-  } catch (err) {
-    res.status(500).json({ message: "Update failed", error: err.message });
+    // Validate required fields, etc.
+
+    // Save to DB - pseudo code:
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      {
+        firstName,
+        lastName,
+        dob,
+        gender,
+        experience,
+        profileImage, // Save base64 string here
+      },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({ message: "Profile updated successfully", user: updatedUser });
+  } catch (error) {
+    console.error("Update profile error:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
+// router.post("/:id/update-profile", async (req, res) => {
+//   const { id } = req.params;
+//   const { firstName, lastName, dob, gender, experience, profileImage } =
+//     req.body;
 
+//   const updateFields = { firstName, lastName, dob, gender, experience };
+
+//   if (profileImage?.startsWith("data:image")) {
+//     updateFields.profileImage = profileImage; // store base64 string directly
+//   }
+
+//   try {
+//     const updatedUser = await User.findByIdAndUpdate(id, updateFields, {
+//       new: true,
+//     });
+//     if (!updatedUser) {
+//       return res.status(404).json({ message: "User not found" });
+//     }
+//     res.status(200).json({ message: "Profile updated", user: updatedUser });
+//   } catch (err) {
+//     console.error("Update profile error:", err);
+//     res.status(500).json({ message: "Update failed", error: err.message });
+//   }
+// });
 
 router.get("/:id", authenticate, async (req, res) => {
   try {
@@ -141,7 +163,9 @@ router.get("/:id", authenticate, async (req, res) => {
     const userObj = user.toObject();
 
     if (user.profileImage?.data) {
-      userObj.profileImage = `data:${user.profileImage.contentType};base64,${user.profileImage.data.toString("base64")}`;
+      userObj.profileImage = `data:${
+        user.profileImage.contentType
+      };base64,${user.profileImage.data.toString("base64")}`;
     } else {
       userObj.profileImage = null;
     }
@@ -151,8 +175,6 @@ router.get("/:id", authenticate, async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
-
-
 
 router.get("/test", (req, res) => {
   res.send("API working!");
