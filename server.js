@@ -7,6 +7,7 @@ require("dotenv").config();
 const authRoutes = require("./routes/auth");
 const quizRoutes = require("./routes/quiz");
 const leaderboardRoutes = require("./routes/leaderboard");
+const courseRoutes=require("./routes/courseRoutes")
 
 const app = express();
 app.use(cors());
@@ -26,6 +27,7 @@ mongoose
 app.use("/api/auth", authRoutes);
 app.use("/api/quiz", quizRoutes);
 app.use("/api/leaderboard", leaderboardRoutes);
+app.use("/api/courses", courseRoutes);
 
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.originalUrl}`);

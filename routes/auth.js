@@ -42,6 +42,59 @@ function generateOTP() {
 }
 
 // Register route
+router.post("/register", async (req, res) => {
+  const { firstName, lastName, email, password, role } = req.body;
+  if (
+    !firstName?.trim() ||
+    !lastName?.trim() ||
+    !email?.trim() ||
+    !password?.trim()
+  ) {
+    console.log(firstName);
+  }
+  try {
+    const existing = await User.findOne({ email });
+    if (existing)
+      return res.status(400).json({ message: "Email already registered" });
+
+    const otp = generateOTP();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+
+    const user = new User({
+      firstName,
+      lastName,
+      email,
+      password,
+      otp,
+      otpExpires,
+      role: role === "admin" ? "admin" : "user",
+    });
+    await user.save();
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    await transporter.sendMail({
+      from: `"App" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Verify Your Email",
+      html: `<p>Your OTP is <b>${otp}</b>. It expires in 10 minutes.</p>`,
+    });
+
+    return res.status(200).json({ message: "OTP sent to email", email });
+  } catch (err) {
+    console.error("Registration Error:", err);
+    return res
+      .status(500)
+      .json({ message: "Registration error", error: err.message });
+  }
+});
+
 router.post("/:id/update-profile", async (req, res) => {
   try {
     const userId = req.params.id;
@@ -66,7 +119,6 @@ router.post("/:id/update-profile", async (req, res) => {
       .json({ message: "Internal server error", error: error.message });
   }
 });
-
 
 router.get("/:id", authenticate, async (req, res) => {
   try {
