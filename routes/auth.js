@@ -253,17 +253,14 @@ router.post("/reset-password", async (req, res) => {
   if (user.resetOTPExpires < Date.now())
     return res.status(400).json({ message: "OTP expired" });
 
-  {
-    /*  const hashedPassword = await bcrypt.hash(newPassword, 10); */
-  }
-  const hashedPassword = await bcrypt.hash(newPassword, 10);
-  user.password = hashedPassword;
+  user.password = newPassword; // plain password
   user.resetOTP = undefined;
   user.resetOTPExpires = undefined;
-  await user.save();
+  await user.save(); // hashing happens here in pre-save hook
 
   res.status(200).json({ message: "Password reset successful" });
 });
+
 
 // Login Route
 router.post("/login", async (req, res) => {
