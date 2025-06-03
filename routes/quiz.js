@@ -159,7 +159,7 @@ router.get("/:category/:subCategory", async (req, res) => {
   }
 });
 
-router.get("/:subjectCategory", async (req, res) => {
+router.get("/subject/:subjectCategory", async (req, res) => {
   try {
     const subjectCategory = req.params.subjectCategory.trim();
     const courses = await Quiz.find({
@@ -235,6 +235,27 @@ router.post("/submit", async (req, res) => {
   } catch (err) {
     console.error("Error saving quiz result:", err);
     res.status(500).json({ message: "Server error." });
+  }
+});
+
+
+// GET quizzes by subjectCategory only (e.g., NISM, MF)
+router.get("/subject/:subjectCategory", async (req, res) => {
+  try {
+    const { subjectCategory } = req.params;
+
+    const quizzes = await Quiz.find({
+      subjectCategory: new RegExp(`^${subjectCategory}$`, "i"),
+    });
+
+    if (!quizzes.length) {
+      return res.status(404).json({ message: "No quizzes found for this subject." });
+    }
+
+    res.json(quizzes);
+  } catch (err) {
+    console.error("Error fetching by subjectCategory:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
