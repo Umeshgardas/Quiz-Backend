@@ -159,7 +159,23 @@ router.get("/:category/:subCategory", async (req, res) => {
   }
 });
 
+router.get("/:subjectCategory", async (req, res) => {
+  try {
+    const subjectCategory = req.params.subjectCategory.trim();
+    const courses = await Quiz.find({
+      subjectCategory: new RegExp(`^${subjectCategory}$`, "i"),
+    });
 
+    if (!courses.length) {
+      return res.status(404).json({ message: "No courses found." });
+    }
+
+    res.status(200).json(courses);
+  } catch (err) {
+    console.error("Error fetching courses:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 // Submit quiz result
 router.post("/submit", async (req, res) => {
@@ -242,6 +258,5 @@ router.get("/subject/:subjectCategory", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
 
 module.exports = router;
