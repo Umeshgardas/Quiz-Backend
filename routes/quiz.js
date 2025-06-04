@@ -9,35 +9,35 @@ router.get("/welcome", (req, res) => {
   res.send("Welcome to the Quiz!");
 });
 // GET /api/quiz/all - Get all quizzes
-router.get('/all', async (req, res) => {
+router.get("/all", async (req, res) => {
   try {
     const quizzes = await Quiz.find({});
     res.status(200).json(quizzes);
   } catch (err) {
-    console.error('Error fetching all quizzes:', err);
-    res.status(500).json({ message: 'Server error while fetching quizzes.' });
+    console.error("Error fetching all quizzes:", err);
+    res.status(500).json({ message: "Server error while fetching quizzes." });
   }
-  });
+});
 
-  // DELETE /api/quiz/:id
-router.delete('/:id', async (req, res) => {
+// DELETE /api/quiz/:id
+router.delete("/:id", async (req, res) => {
   try {
     await Quiz.findByIdAndDelete(req.params.id);
-    res.status(200).json({ message: 'Quiz deleted successfully' });
+    res.status(200).json({ message: "Quiz deleted successfully" });
   } catch (err) {
-    res.status(500).json({ message: 'Error deleting quiz' });
+    res.status(500).json({ message: "Error deleting quiz" });
   }
 });
 
 // PUT /api/quiz/:id
-router.put('/:id', async (req, res) => {
+router.put("/:id", async (req, res) => {
   try {
     const updatedQuiz = await Quiz.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
     });
     res.status(200).json(updatedQuiz);
   } catch (err) {
-    res.status(500).json({ message: 'Error updating quiz' });
+    res.status(500).json({ message: "Error updating quiz" });
   }
 });
 
@@ -239,22 +239,37 @@ router.post("/submit", async (req, res) => {
 });
 
 
-// GET quizzes by subjectCategory only (e.g., NISM, MF)
-router.get("/subject/:subjectCategory", async (req, res) => {
+
+router.get("/subjects", async (req, res) => {
   try {
-    const { subjectCategory } = req.params;
-
-    const quizzes = await Quiz.find({
-      subjectCategory: new RegExp(`^${subjectCategory}$`, "i"),
-    });
-
-    if (!quizzes.length) {
-      return res.status(404).json({ message: "No quizzes found for this subject." });
-    }
-
-    res.json(quizzes);
+    const subjects = await Quiz.distinct("subjectCategory");
+    res.json(subjects);
   } catch (err) {
-    console.error("Error fetching by subjectCategory:", err);
+    console.error("Fetch Subjects Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/topics/:subjectCategory", async (req, res) => {
+  try {
+    const topics = await Quiz.find({
+      subjectCategory: req.params.subjectCategory,
+    }).distinct("topicCategory");
+    res.json(topics);
+  } catch (err) {
+    console.error("Fetch Topics Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/quiz/:topicCategory", async (req, res) => {
+  try {
+    const questions = await Quiz.find({
+      topicCategory: req.params.topicCategory,
+    });
+    res.json(questions);
+  } catch (err) {
+    console.error("Fetch Quiz Error:", err);
     res.status(500).json({ error: err.message });
   }
 });
