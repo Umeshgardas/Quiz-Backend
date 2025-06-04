@@ -162,10 +162,11 @@ router.get("/:category/:subCategory", async (req, res) => {
 // Fetch quiz by subject params
 router.get("/:subjectCategory/:topicCategory", async (req, res) => {
   try {
-    const { subjectCategory } = req.params;
+    const { subjectCategory, topicCategory } = req.params;
 
     const quizzes = await Quiz.find({
       subjectCategory: new RegExp(`^${subjectCategory}$`, "i"),
+      topicCategory: new RegExp(`^${topicCategory}$`, "i"),
     });
 
     if (!quizzes.length) {
@@ -241,6 +242,6 @@ router.post("/submit", async (req, res) => {
 });
 
 module.exports = router;
- const handleClick = (subject) => {
-    navigate(`/courses/${subject}`);
-  };
+const handleClick = (subject) => {
+  navigate(`/courses/${subject}`);
+};
