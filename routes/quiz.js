@@ -160,7 +160,7 @@ router.get("/:category/:subCategory", async (req, res) => {
   }
 });
 // Fetch quiz by subject params
-router.get("/:subjectCategory", async (req, res) => {
+router.get("/:subjectCategory/:topicCategory", async (req, res) => {
   try {
     const { subjectCategory } = req.params;
 
@@ -241,3 +241,6 @@ router.post("/submit", async (req, res) => {
 });
 
 module.exports = router;
+ const handleClick = (subject) => {
+    navigate(`/courses/${subject}`);
+  };
