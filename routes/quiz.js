@@ -164,12 +164,16 @@ router.get("/:subjectCategory/:topicCategory", async (req, res) => {
   try {
     const { subjectCategory, topicCategory } = req.params;
 
+    console.log("Received subjectCategory:", subjectCategory);
+    console.log("Received topicCategory:", topicCategory);
+
     const quizzes = await Quiz.find({
       subjectCategory: new RegExp(`^${subjectCategory}$`, "i"),
       topicCategory: new RegExp(`^${topicCategory}$`, "i"),
     });
 
     if (!quizzes.length) {
+      console.log("No quiz found for the given subject/topic.");
       return res.status(404).json({ message: "No quiz found." });
     }
 
@@ -179,6 +183,7 @@ router.get("/:subjectCategory/:topicCategory", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // Submit quiz result
 router.post("/submit", async (req, res) => {
