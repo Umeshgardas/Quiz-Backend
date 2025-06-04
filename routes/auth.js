@@ -144,27 +144,37 @@ router.get("/test", (req, res) => {
 router.post("/verify-otp", async (req, res) => {
   const { email, otp } = req.body;
 
-  const user = await User.findOne({ email });
-  if (!user) return res.status(400).json({ message: "User not found" });
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ message: "User not found" });
 
-  if (user.isVerified)
-    return res.status(400).json({ message: "Already verified" });
+    if (user.isVerified)
+      return res.status(400).json({ message: "Already verified" });
 
-  if (user.otp !== otp) {
-    return res.status(400).json({ message: "Invalid OTP" });
+    if (user.otp !== otp) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    if (user.otpExpires < Date.now()) {
+      return res.status(400).json({ message: "OTP expired" });
+    }
+
+    // ✅ Only when all checks pass:
+    user.isVerified = true;
+    user.otp = undefined;
+    user.otpExpires = undefined;
+
+    await user.save();
+
+    return res.status(200).json({ message: "Email verified successfully!" });
+
+  } catch (error) {
+    console.error("OTP verification failed:", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
-
-  if (user.otpExpires < Date.now()) {
-    return res.status(400).json({ message: "OTP expired" });
-  }
-
-  user.isVerified = true;
-  user.otp = undefined;
-  user.otpExpires = undefined;
-  await user.save();
-
-  return res.status(200).json({ message: "Email verified successfully!" });
 });
+
+
 
 router.post("/resend-otp", async (req, res) => {
   try {
@@ -260,7 +270,6 @@ router.post("/reset-password", async (req, res) => {
 
   res.status(200).json({ message: "Password reset successful" });
 });
-
 
 // Login Route
 router.post("/login", async (req, res) => {

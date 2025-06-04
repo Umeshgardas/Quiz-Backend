@@ -53,6 +53,7 @@ router.get("/history/:userEmail", async (req, res) => {
     res.status(500).json({ message: "Error fetching quiz history" });
   }
 });
+
 // Check quiz status
 router.get("/status/:email/:category/:subCategory", checkQuizStatus);
 
@@ -158,22 +159,23 @@ router.get("/:category/:subCategory", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
+// Fetch quiz by subject params
 router.get("/:subjectCategory", async (req, res) => {
   try {
-    const subjectCategory = req.params.subjectCategory.trim();
-    const courses = await Quiz.find({
+    const { subjectCategory } = req.params;
+
+    const quizzes = await Quiz.find({
       subjectCategory: new RegExp(`^${subjectCategory}$`, "i"),
     });
 
-    if (!courses.length) {
-      return res.status(404).json({ message: "No courses found." });
+    if (!quizzes.length) {
+      return res.status(404).json({ message: "No quiz found." });
     }
 
-    res.status(200).json(courses);
+    res.json(quizzes);
   } catch (err) {
-    console.error("Error fetching courses:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Fetch Error:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -235,42 +237,6 @@ router.post("/submit", async (req, res) => {
   } catch (err) {
     console.error("Error saving quiz result:", err);
     res.status(500).json({ message: "Server error." });
-  }
-});
-
-
-
-router.get("/subjects", async (req, res) => {
-  try {
-    const subjects = await Quiz.distinct("subjectCategory");
-    res.json(subjects);
-  } catch (err) {
-    console.error("Fetch Subjects Error:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-router.get("/topics/:subjectCategory", async (req, res) => {
-  try {
-    const topics = await Quiz.find({
-      subjectCategory: req.params.subjectCategory,
-    }).distinct("topicCategory");
-    res.json(topics);
-  } catch (err) {
-    console.error("Fetch Topics Error:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-router.get("/quiz/:topicCategory", async (req, res) => {
-  try {
-    const questions = await Quiz.find({
-      topicCategory: req.params.topicCategory,
-    });
-    res.json(questions);
-  } catch (err) {
-    console.error("Fetch Quiz Error:", err);
-    res.status(500).json({ error: err.message });
   }
 });
 
