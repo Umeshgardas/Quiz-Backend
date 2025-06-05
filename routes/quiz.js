@@ -159,28 +159,22 @@ router.get("/:category/:subCategory", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
-router.get("/:subjectCategory/:topicCategory", async (req, res) => {
+// Fetch quiz by subject params
+router.get("/:subjectCategory", async (req, res) => {
   try {
-    let { subjectCategory, topicCategory } = req.params;
-
-    subjectCategory = subjectCategory.trim();
-    topicCategory = topicCategory.trim();
-
-    const quizzes = await Quiz.find({
-      subjectCategory: { $regex: `^${subjectCategory}$`, $options: "i" },
-      topicCategory: { $regex: `^${topicCategory}$`, $options: "i" },
+    const subjectCategory = req.params.subjectCategory.trim();
+    const courses = await Quiz.find({
+      subjectCategory: new RegExp(`^${subjectCategory}$`, "i"),
     });
 
-    if (!quizzes.length) {
-      console.log("No quiz found for the given subject/topic.");
-      return res.status(404).json({ message: "No quiz found." });
+    if (!courses.length) {
+      return res.status(404).json({ message: "No courses found." });
     }
 
-    res.json(quizzes);
+    res.status(200).json(courses);
   } catch (err) {
-    console.error("Fetch Error:", err);
-    res.status(500).json({ error: err.message });
+    console.error("Error fetching courses:", err);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
