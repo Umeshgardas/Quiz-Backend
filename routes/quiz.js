@@ -160,23 +160,18 @@ router.get("/:category/:subCategory", async (req, res) => {
   }
 });
 // Fetch quiz by subject params
-router.get("/:subjectCategory", async (req, res) => {
-  try {
-    const subjectCategory = req.params.subjectCategory.trim();
-    const courses = await Quiz.find({
-      subjectCategory: new RegExp(`^${subjectCategory}$`, "i"),
-    });
+router.get("/:subject/:mock", async (req, res) => {
+  const { subject, mock } = req.params;
 
-    if (!courses.length) {
-      return res.status(404).json({ message: "No courses found." });
-    }
+  const readableMock = mock.replace("mock", "Mock "); // "mock1" → "Mock 1"
 
-    res.status(200).json(courses);
-  } catch (err) {
-    console.error("Error fetching courses:", err);
-    res.status(500).json({ message: "Server error" });
-  }
+  const quiz = await Quiz.find({ subject, mock: readableMock });
+
+  if (!quiz.length) return res.status(404).json({ message: "Quiz not found" });
+
+  res.json(quiz);
 });
+
 
 // Submit quiz result
 router.post("/submit", async (req, res) => {
