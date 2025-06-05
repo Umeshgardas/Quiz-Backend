@@ -163,22 +163,18 @@ router.get("/:category/:subCategory", async (req, res) => {
 router.get("/:subject/:mock", async (req, res) => {
   const { subject, mock } = req.params;
 
-  // Normalize both possible formats: "mock1" → "Mock 1", "Mock1" → "Mock 1"
-  const mockMatch = mock.match(/mock(\d+)/i); // case-insensitive match
-  const readableMock = mockMatch ? `Mock ${mockMatch[1]}` : mock;
+  const readableMock = mock.replace("mock", "Mock "); // e.g., "mock1" → "Mock 1"
 
-  try {
-    const quiz = await Quiz.find({ subject, mock: readableMock });
+  const quiz = await Quiz.find({
+    subjectCategory: subject,
+    topicCategory: readableMock,
+  });
 
-    if (!quiz.length) {
-      return res.status(404).json({ message: "Quiz not found" });
-    }
+  if (!quiz.length) return res.status(404).json({ message: "Quiz not found" });
 
-    res.json(quiz);
-  } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
-  }
+  res.json(quiz);
 });
+
 
 
 
