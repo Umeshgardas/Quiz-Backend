@@ -159,17 +159,17 @@ router.get("/:category/:subCategory", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// Fetch quiz by subject params
+
 router.get("/:subjectCategory/:topicCategory", async (req, res) => {
   try {
-    const { subjectCategory, topicCategory } = req.params;
+    let { subjectCategory, topicCategory } = req.params;
 
-    console.log("Received subjectCategory:", subjectCategory);
-    console.log("Received topicCategory:", topicCategory);
+    subjectCategory = subjectCategory.trim();
+    topicCategory = topicCategory.trim();
 
     const quizzes = await Quiz.find({
-      subjectCategory: new RegExp(`^${subjectCategory}$`, "i"),
-      topicCategory: new RegExp(`^${topicCategory}$`, "i"),
+      subjectCategory: { $regex: `^${subjectCategory}$`, $options: "i" },
+      topicCategory: { $regex: `^${topicCategory}$`, $options: "i" },
     });
 
     if (!quizzes.length) {
@@ -183,7 +183,6 @@ router.get("/:subjectCategory/:topicCategory", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
 
 // Submit quiz result
 router.post("/submit", async (req, res) => {
