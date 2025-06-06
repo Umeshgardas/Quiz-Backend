@@ -159,21 +159,27 @@ router.get("/:category/:subCategory", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// Fetch quiz by subject params
-router.get("/:subject/:mock", async (req, res) => {
-  const { subject, mock } = req.params;
+// Fetch quiz by subjectCategory and topicCategory only
+router.get("/:subjectCategory/:topicCategory", async (req, res) => {
+  try {
+    const { subjectCategory, topicCategory } = req.params;
 
-  const readableMock = mock.replace("mock", "Mock "); // e.g., "mock1" → "Mock 1"
+    const quizzes = await Quiz.find({
+      subjectCategory: new RegExp(`^${subjectCategory}$`, "i"),
+      topicCategory: new RegExp(`^${topicCategory}$`, "i"),
+    });
 
-  const quiz = await Quiz.find({
-    subjectCategory: subject,
-    topicCategory: readableMock,
-  });
+    if (!quizzes.length) {
+      return res.status(404).json({ message: "No quiz found." });
+    }
 
-  if (!quiz.length) return res.status(404).json({ message: "Quiz not found" });
-
-  res.json(quiz);
+    res.json(quizzes);
+  } catch (err) {
+    console.error("Fetch Error:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
+
 
 
 
