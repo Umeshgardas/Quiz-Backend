@@ -159,18 +159,18 @@ router.get("/:category/:subCategory", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// Fetch quiz by subjectCategory and topicCategory only
-router.get("/:subjectCategory/:topicCategory", async (req, res) => {
+// GET /api/quiz/topic/:topicCategory
+router.get("/topic/:topicCategory", async (req, res) => {
   try {
-    const { subjectCategory, topicCategory } = req.params;
+    const topicCategory = req.params.topicCategory.trim();
 
+    // Find quizzes matching only the topicCategory (case-insensitive)
     const quizzes = await Quiz.find({
-      subjectCategory: new RegExp(`^${subjectCategory}$`, "i"),
       topicCategory: new RegExp(`^${topicCategory}$`, "i"),
     });
 
     if (!quizzes.length) {
-      return res.status(404).json({ message: "No quiz found." });
+      return res.status(404).json({ message: "No quiz found for this topic category." });
     }
 
     res.json(quizzes);
@@ -179,9 +179,6 @@ router.get("/:subjectCategory/:topicCategory", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
-
-
 
 
 // Submit quiz result
