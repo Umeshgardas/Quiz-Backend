@@ -1,34 +1,15 @@
 const mongoose = require("mongoose");
 
 const QuizResultSchema = new mongoose.Schema({
-  user: {
-    type: String, // or use email or userId if available
-    required: true,
-  },
-  category: {
-    type: String,
-    required: true,
-  },
-  subCategory: {
-    type: String,
-    required: true,
-  },
-  subjectCategory: {
-    type: String,
-    required: true,
-  },
-  topicCategory: {
-    type: String,
-    required: true,
-  },
-
+   user: String,
+  category: { type: String, default: null },
+  subCategory: { type: String, default: null },
+  subjectCategory: String,
+  topicCategory: { type: String, default: null },
   score: Number,
   total: Number,
   answers: Object,
-  date: {
-    type: Date,
-    default: Date.now,
-  },
+  date: Date,
 });
 
 module.exports = mongoose.model("QuizResult", QuizResultSchema);

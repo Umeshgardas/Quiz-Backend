@@ -170,7 +170,9 @@ router.get("/topic/:topicCategory", async (req, res) => {
     });
 
     if (!quizzes.length) {
-      return res.status(404).json({ message: "No quiz found for this topic category." });
+      return res
+        .status(404)
+        .json({ message: "No quiz found for this topic category." });
     }
 
     res.json(quizzes);
@@ -180,6 +182,35 @@ router.get("/topic/:topicCategory", async (req, res) => {
   }
 });
 
+router.get("/", async (req, res) => {
+  try {
+    console.log("GET /api/quiz endpoint hit");
+    console.log("Query params:", req.query);
+    const { subjectCategory, topicCategory } = req.query;
+    if (!subjectCategory) {
+      return res.status(400).json({ message: "subjectCategory is required" });
+    }
+
+    let query = {
+      subjectCategory: new RegExp(`^${subjectCategory}$`, "i"),
+    };
+
+    if (topicCategory) {
+      query.topicCategory = new RegExp(`^${topicCategory}$`, "i");
+    }
+
+    const quizzes = await Quiz.find(query);
+
+    if (!quizzes.length) {
+      return res.status(404).json({ message: "No quiz found." });
+    }
+
+    res.json(quizzes);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // Submit quiz result
 router.post("/submit", async (req, res) => {
@@ -195,12 +226,15 @@ router.post("/submit", async (req, res) => {
       answers,
     } = req.body;
 
+    console.log("Incoming payload:", req.body); // Log the full payload
+
+    // Validate required fields based on request type
+    const isPage1 = category && subCategory;
+    const isPage2 = subjectCategory && !category && !subCategory;
+
     if (
       !user ||
-      !category ||
-      !subCategory ||
       !subjectCategory ||
-      !topicCategory ||
       score == null ||
       total == null ||
       !answers
@@ -208,26 +242,12 @@ router.post("/submit", async (req, res) => {
       return res.status(400).json({ message: "Missing required fields." });
     }
 
-    category = category.trim();
-    subCategory = subCategory.trim();
-    subjectCategory = subjectCategory.trim();
-    topicCategory = topicCategory.trim();
-    const existingResult = await QuizResult.findOne({
-      user,
-      category,
-      subCategory,
-    });
-
-    // if (existingResult) {
-    //   return res.status(409).json({ message: "Quiz already submitted." });
-    // }
-
     const newResult = new QuizResult({
       user,
-      category,
-      subCategory,
-      subjectCategory,
-      topicCategory,
+      category: category?.trim() || null,
+      subCategory: subCategory?.trim() || null,
+      subjectCategory: subjectCategory.trim(),
+      topicCategory: topicCategory?.trim() || null,
       score,
       total,
       answers,
@@ -235,12 +255,15 @@ router.post("/submit", async (req, res) => {
     });
 
     await newResult.save();
-    res.status(200).json({ message: "Quiz result saved successfully." });
+
+    return res.status(200).json({ message: "Quiz result saved successfully." });
   } catch (err) {
-    console.error("Error saving quiz result:", err);
-    res.status(500).json({ message: "Server error." });
+    console.error("Error saving quiz result:", err); // Print full error
+    return res.status(500).json({ message: "Server error." });
   }
 });
+
+
 
 module.exports = router;
 const handleClick = (subject) => {
